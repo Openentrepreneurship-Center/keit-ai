@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>평가위원 적합도 관리체계 — KEIT</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── KEIT 컬러 팔레트 (공식 로고 기준) ── */
+    :root {
+      --k-nav:    #1456c8;   /* KEIT 내비 블루 (메인 바) */
+      --k-dark:   #1a3565;   /* KEIT 다크 네이비 */
+      --k-blue:   #1456c8;   /* KEIT 블루 */
+      --k-mid:    #2470d8;   /* 중간 블루 */
+      --k-light:  #dce8ff;   /* 연블루 배경 */
+      --k-pale:   #f2f6ff;   /* 페이지 배경 */
+
+      /* KEIT 로고 4색 */
+      --k-pink:   #e4007f;   /* 핑크·마젠타 */
+      --k-green:  #3ab741;   /* 그린 */
+      --k-cyan:   #00b2d8;   /* 시안 */
+      --k-orange: #f7941d;   /* 오렌지 */
+
+      --bg:       #f2f6ff;
+      --card:     #ffffff;
+      --border:   #c0d4ef;
+      --border-lt:#ddeaf8;
+      --text:     #1a202c;
+      --text-sub: #3d5270;
+      --text-muted:#7890b0;
+      --shadow:   0 2px 6px rgba(20,86,200,.08), 0 4px 18px rgba(20,86,200,.09);
+      --r:        10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:'Noto Sans KR',-apple-system,sans-serif;
+      background:var(--bg);color:var(--text);font-size:13px;line-height:1.65;
+    }
+
+    /* ── KEIT 상단 헤더 ── */
+    .keit-header{
+      background:var(--k-nav);color:#fff;
+      padding:10px 24px;
+      display:flex;align-items:center;justify-content:space-between;
+      border-bottom:3px solid var(--k-dark);
+    }
+    .keit-logo{font-size:18px;font-weight:800;letter-spacing:.05em;color:#fff;}
+    .keit-logo span{font-weight:400;font-size:12px;opacity:.7;margin-left:8px;}
+    .keit-nav-label{font-size:11px;opacity:.65;}
+
+    /* ── Page ── */
+    .page{max-width:1600px;margin:0 auto;padding:16px 20px 32px;}
+
+    /* ── Topbar ── */
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:16px;
+      padding-bottom:14px;
+      border-bottom:2px solid var(--k-light);
+    }
+    .topbar-title{font-size:18px;font-weight:800;color:var(--k-dark);}
+    .topbar-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+    .topbar select{
+      padding:8px 16px;border:1px solid var(--border);border-radius:6px;
+      background:var(--card);font-size:13px;font-family:inherit;
+      color:var(--text);box-shadow:0 1px 4px rgba(0,51,128,.06);min-width:270px;
+    }
+
+    /* ── Card ── */
+    .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
+    .card-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:11px 16px 10px;border-bottom:1px solid var(--border-lt);
+    }
+    .card-head h3{font-size:13px;font-weight:700;color:var(--k-dark);}
+    .detail-btn{
+      font-size:11px;color:var(--k-blue);border:1px solid var(--k-blue);
+      padding:2px 10px;border-radius:20px;cursor:default;
+    }
+    .card-body{padding:16px;}
+
+    /* ── 3-col grid ── */
+    .grid{display:grid;grid-template-columns:280px 1fr 330px;gap:16px;align-items:start;}
+    .col{display:flex;flex-direction:column;gap:16px;}
+
+    /* ═══ LEFT: Grade ═══ */
+    .grade-display{display:flex;align-items:center;gap:18px;padding:10px 0 12px;}
+    .grade-big{text-align:center;flex-shrink:0;}
+    .grade-letter{font-size:76px;font-weight:800;color:var(--k-dark);line-height:1;}
+    .grade-pct{font-size:12px;color:var(--text-muted);margin-top:4px;}
+    .bell-wrap{flex:1;height:105px;min-width:0;position:relative;}
+
+    .grade-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11.5px;}
+    .grade-table th,.grade-table td{
+      padding:7px 9px;border:1px solid var(--border-lt);text-align:center;
+    }
+    .grade-table th{background:#f4f8fc;font-weight:600;color:var(--text-sub);}
+    .gtag{display:inline-block;width:28px;height:28px;line-height:28px;border-radius:6px;font-weight:900;font-size:14px;}
+    .gtag-s{background:#eef2fa;color:var(--k-dark);border:2px solid var(--k-dark);}        /* S — 네이비 텍스트 */
+    .gtag-a{background:#e0f7fc;color:#007a94;border:2px solid var(--k-cyan);}              /* A — 시안 텍스트 */
+    .gtag-b{background:#fff4e0;color:#b05500;border:2px solid var(--k-orange);}            /* B — 오렌지 텍스트 */
+
+    /* ═══ LEFT: 타율 분석 ═══ */
+    .hr-banner{
+      background:linear-gradient(135deg,var(--k-dark) 0%,var(--k-nav) 100%);border-radius:8px;
+      padding:18px 16px 16px;color:#fff;text-align:center;
+      margin-bottom:14px;
+    }
+    .hr-banner-label{font-size:11px;opacity:.75;margin-bottom:6px;font-weight:500;}
+    .hr-banner-val{font-size:52px;font-weight:800;line-height:1;letter-spacing:-.02em;}
+    .hr-banner-sub{font-size:11px;opacity:.65;margin-top:5px;}
+    .hitrate-wrap{height:190px;position:relative;}
+
+    /* ═══ CENTER: Hero ═══ */
+    .candidate-hero{
+      background:linear-gradient(135deg,var(--k-dark) 0%,var(--k-nav) 100%);border-radius:var(--r) var(--r) 0 0;
+      padding:20px 22px 18px;color:#fff;
+    }
+    .hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+    .hero-name{font-size:24px;font-weight:800;margin-bottom:6px;}
+    .hero-tag{
+      display:inline-block;font-size:11px;padding:3px 11px;
+      border-radius:12px;background:rgba(255,255,255,.18);margin-right:5px;margin-top:4px;
+    }
+    .hero-rate-box{text-align:right;}
+    .hero-rate-box .rl{font-size:11px;opacity:.7;margin-bottom:4px;}
+    .hero-rate-box .rv{font-size:32px;font-weight:800;line-height:1;}
+    .hero-rate-box .ru{font-size:13px;opacity:.7;}
+    .hero-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .hero-cell{background:rgba(255,255,255,.13);border-radius:6px;padding:9px 11px;}
+    .hero-cell .hc-label{font-size:10px;opacity:.65;margin-bottom:3px;}
+    .hero-cell .hc-value{font-size:13px;font-weight:700;}
+
+    /* AI box */
+    .ai-box{padding:2px;background:linear-gradient(135deg,var(--k-nav),var(--k-dark));}
+    .ai-box-inner{background:#f4f8fe;padding:18px 20px;}
+    .ai-box-header{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .ai-box-title{font-size:13px;font-weight:700;color:var(--k-dark);}
+    .ai-rate-inline{
+      display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-sub);
+    }
+    .ai-rate-bar{width:90px;height:7px;background:#c8d8ea;border-radius:4px;overflow:hidden;}
+    .ai-rate-fill{height:100%;background:var(--k-blue);border-radius:4px;transition:width .4s;}
+    .ai-rate-num{font-size:13px;font-weight:700;color:var(--k-blue);}
+
+    .ai-summary-list{list-style:none;margin-bottom:10px;}
+    .ai-summary-list li{
+      display:flex;gap:10px;padding:8px 0;
+      border-bottom:1px solid #d8e8f5;font-size:13px;color:var(--text-sub);
+      line-height:1.65;
+    }
+    .ai-summary-list li:last-child{border-bottom:none;padding-bottom:0;}
+    .ai-axis-tag{
+      flex-shrink:0;margin-top:2px;
+      display:inline-flex;align-items:center;justify-content:center;
+      width:46px;height:22px;border-radius:11px;
+      background:var(--k-dark);color:#fff;
+      font-size:10px;font-weight:700;letter-spacing:.02em;
+    }
+    /* 5개 축 개별 색상 */
+    .ax-fit   {background:var(--k-dark);}    /* 적합성 — 네이비 */
+    .ax-sinc  {background:var(--k-blue);}    /* 성실성 — 블루 */
+    .ax-fair  {background:var(--k-cyan);}    /* 공정성 — 시안 */
+    .ax-trust {background:var(--k-green);}   /* 신뢰성 — 그린 */
+    .ax-rate  {background:var(--k-orange);}  /* 타율   — 오렌지 */
+    .ai-note{
+      font-size:11px;color:var(--text-muted);
+      border-top:1px solid #c8d8ea;padding-top:10px;margin-top:4px;
+    }
+
+    .hl   {background:#dce8f5;padding:1px 5px;border-radius:3px;font-weight:600;color:var(--k-dark);}
+    .hl-r {background:#e8eef5;padding:1px 5px;border-radius:3px;font-weight:600;color:#4a6480;
+           text-decoration:underline;text-decoration-color:#8096b2;text-underline-offset:2px;}
+
+    /* Candidate body */
+    .candidate-body{
+      background:var(--card);border-radius:0 0 var(--r) var(--r);
+      padding:18px 20px;box-shadow:var(--shadow);
+    }
+    .sec{margin-bottom:18px;}
+    .sec h4{
+      font-size:13px;font-weight:700;color:var(--k-dark);
+      padding-left:10px;border-left:3px solid var(--k-blue);margin-bottom:10px;
+    }
+    .two-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .info-box{border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:#f8fbff;}
+    .info-box .ib-title{font-size:11px;font-weight:700;color:var(--k-blue);margin-bottom:7px;}
+    .info-box ul{padding-left:16px;font-size:12px;color:var(--text-sub);}
+    .info-box li{margin-bottom:4px;}
+
+    /* ═══ Framework table (real-service style) ═══ */
+    .fw-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .fw-tbl thead th{
+      background:#f0f5fb;font-weight:700;color:var(--k-dark);
+      padding:10px 14px;border:1px solid var(--border-lt);text-align:center;
+    }
+    .fw-tbl tbody tr{border-bottom:1px solid var(--border-lt);}
+    .fw-tbl tbody tr:last-child{border-bottom:none;}
+    .fw-tbl .fw-idx{
+      width:15%;padding:14px 12px;
+      background:#f8fbff;text-align:center;
+      border-right:1px solid var(--border-lt);
+      vertical-align:middle;
+    }
+    .fw-idx-inner{display:flex;flex-direction:column;align-items:center;gap:5px;}
+    .fw-idx-name{font-size:13px;font-weight:700;color:var(--k-dark);}
+    .fw-idx-keys{font-size:10px;color:var(--text-muted);line-height:1.5;text-align:center;}
+    .fw-tbl .fw-status{
+      width:18%;padding:14px 12px;
+      text-align:center;vertical-align:middle;
+      border-right:1px solid var(--border-lt);
+    }
+    .fw-tbl .fw-desc{width:67%;padding:14px 16px;vertical-align:middle;color:var(--text-sub);line-height:1.7;}
+
+    /* status badge (KEIT 4색 기준) */
+    .sb{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;
+      letter-spacing:.02em;white-space:nowrap;
+    }
+    .sb-good {background:#d5f5da;color:#1a6b2a;border:2px solid var(--k-green);}  /* 적합 — KEIT 그린 */
+    .sb-info {background:#cdf0fa;color:#005e78;border:2px solid var(--k-cyan);}   /* 양호 — KEIT 시안 */
+    .sb-mid  {background:#fff0d4;color:#7a3c00;border:2px solid var(--k-orange);} /* 주의 — KEIT 오렌지 */
+    .sb-warn {background:#fce0f0;color:#7a0040;border:2px solid var(--k-pink);}   /* 검토 중 — KEIT 핑크 */
+
+    /* 타율 row highlight */
+    .fw-tbl tr.row-hl .fw-idx{background:#e8f0fa;border-left:4px solid var(--k-blue);}
+    .fw-tbl tr.row-hl .fw-idx-name{color:var(--k-blue);}
+    .fw-tbl tr.row-hl .fw-desc{background:#f4f8ff;}
+
+    .scroll-mid{max-height:900px;overflow-y:auto;}
+    .scroll-mid::-webkit-scrollbar{width:4px;}
+    .scroll-mid::-webkit-scrollbar-thumb{background:#c0d4e8;border-radius:2px;}
+
+    /* ═══ RIGHT: Gantt ═══ */
+    .gantt-axis{display:flex;margin-bottom:8px;margin-left:70px;}
+    .gantt-axis span{flex:1;font-size:9.5px;color:var(--text-muted);text-align:center;}
+    .gantt-row{display:flex;align-items:center;margin-bottom:9px;gap:8px;}
+    .gantt-label{font-size:11px;color:var(--text-sub);width:62px;flex-shrink:0;text-align:right;font-weight:500;}
+    .gantt-track{flex:1;height:28px;position:relative;background:#e0eaf8;border-radius:4px;overflow:visible;}
+    .gantt-bar{
+      position:absolute;top:0;height:100%;border-radius:4px;
+      display:flex;align-items:center;justify-content:center;
+      padding:0 6px;min-width:32px;
+      font-size:10px;font-weight:700;color:#fff;white-space:nowrap;
+      box-shadow:0 1px 3px rgba(0,0,0,.15);
+    }
+    .gb-1{background:var(--k-dark);}       /* 재단 평가 — 네이비 */
+    .gb-2{background:var(--k-cyan);}       /* 유사 과제 — 시안 */
+    .gb-3{background:var(--k-orange);}     /* 외부 평가 — 오렌지 */
+    .gb-4{background:var(--k-green);}      /* 성과 확인 — 그린 */
+
+    /* ═══ RIGHT: Radar ═══ */
+    .radar-wrap{height:240px;position:relative;}
+
+    /* ═══ RIGHT: FW guide ═══ */
+    .fw-guide-row{
+      display:flex;align-items:flex-start;gap:12px;
+      padding:10px 14px;border-bottom:1px solid var(--border-lt);
+    }
+    .fw-guide-row:last-child{border-bottom:none;}
+    .fw-guide-row.hl{background:#f0f6ff;}
+    .fw-num{
+      flex-shrink:0;width:22px;height:22px;
+      background:var(--k-dark);color:#fff;border-radius:4px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:700;
+    }
+    .fw-num.ax-fit  {background:var(--k-dark);}
+    .fw-num.ax-sinc {background:var(--k-blue);}
+    .fw-num.ax-fair {background:var(--k-cyan);}
+    .fw-num.ax-trust{background:var(--k-green);}
+    .fw-num.ax-rate {background:var(--k-orange);}
+    .fw-name{font-size:12px;font-weight:700;color:var(--k-dark);min-width:48px;}
+    .fw-items{font-size:11px;color:var(--text-muted);line-height:1.6;}
+  </style>
+</head>
+<body>
+
+<!-- KEIT 헤더 -->
+<div class="keit-header">
+  <div class="keit-logo">KEIT <span>한국산업기술기획평가원</span></div>
+</div>
+
+<div class="page">
+
+  <!-- Topbar -->
+  <div class="topbar" style="justify-content:flex-end;">
+    <select id="sel">
+      <option value="1">김○○ — AI·데이터 분야 · 서울대 교수</option>
+      <option value="2">이○○ — 바이오·헬스 분야 · KIST 선임연구원</option>
+      <option value="3">박○○ — ICT·SW 분야 · (주)○○ CTO</option>
+    </select>
+  </div>
+
+  <div class="grid">
+
+    <!-- ════ LEFT ════ -->
+    <div class="col">
+
+      <!-- 적합도 등급 -->
+      <div class="card">
+        <div class="card-head">
+          <h3>적합도 등급 <span id="lGrade" style="font-weight:800;">S</span></h3>
+          <span class="detail-btn">상세</span>
+        </div>
+        <div class="card-body">
+          <div class="grade-display">
+            <div class="grade-big">
+              <div class="grade-letter" id="lGradeLetter">S</div>
+              <div class="grade-pct" id="lPercentile">상위 3.2%</div>
+            </div>
+            <div class="bell-wrap"><canvas id="bellChart"></canvas></div>
+          </div>
+          <table class="grade-table">
+            <thead><tr><th>지표</th><th>수집 구간</th><th>등급</th></tr></thead>
+            <tbody id="gradeRows">
+              <tr><td>적합성</td><td>평가자 후보</td><td><span class="gtag gtag-s">S</span></td></tr>
+              <tr><td>성실성</td><td>평가 수행</td><td><span class="gtag gtag-a">A</span></td></tr>
+              <tr><td>공정성</td><td>평가 이전</td><td><span class="gtag gtag-b">B</span></td></tr>
+              <tr><td>신뢰성</td><td>사후 평가</td><td><span class="gtag gtag-a">A</span></td></tr>
+              <tr><td>타율</td><td>사업화</td><td><span class="gtag gtag-a">A</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 타율 분석 -->
+      <div class="card">
+        <div class="card-head"><h3>타율 분석</h3><span class="detail-btn">상세</span></div>
+        <div class="card-body">
+          <div class="hr-banner">
+            <div class="hr-banner-label">고평가 과제 사업화 달성률</div>
+            <div class="hr-banner-val" id="hrPct">50%</div>
+            <div class="hr-banner-sub" id="hrSub">평가 5건 중 사업화 확인 1건</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            과거 평가건별 평가점수 vs 사업화 성과 비교
+          </div>
+          <div class="hitrate-wrap"><canvas id="hitrateChart"></canvas></div>
+        </div>
+      </div>
+
+    </div><!-- /left -->
+
+
+    <!-- ════ CENTER ════ -->
+    <div class="col scroll-mid">
+      <div>
+        <!-- Hero -->
+        <div class="candidate-hero">
+          <div class="hero-top">
+            <div>
+              <div class="hero-name" id="mName">김○○</div>
+              <div style="margin-top:4px;">
+                <span class="hero-tag" id="hTag1">AI·데이터 분야</span>
+                <span class="hero-tag" id="hTag2">서울대 교수</span>
+                <span class="hero-tag" id="hTag3">공학박사</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-info-grid">
+            <div class="hero-cell"><div class="hc-label">소속</div><div class="hc-value" id="hAffil">서울대학교</div></div>
+            <div class="hero-cell"><div class="hc-label">기술분야 일치</div><div class="hc-value" id="hMatch">일치</div></div>
+            <div class="hero-cell"><div class="hc-label">재단 평가 참여</div><div class="hc-value" id="hFound">3회</div></div>
+            <div class="hero-cell"><div class="hc-label">제척 사유</div><div class="hc-value" id="hExcl">없음</div></div>
+          </div>
+        </div>
+
+        <!-- AI 분석 요약 -->
+        <div class="ai-box">
+          <div class="ai-box-inner">
+            <div class="ai-box-header">
+              <div class="ai-box-title">AI 분석 요약 — 보조 자료</div>
+            </div>
+            <ul class="ai-summary-list" id="aiSummaryList">
+              <li>
+                <span class="ai-axis-tag ax-fit">적합성</span>
+                <span>기술분야 <span class="hl">AI·데이터</span>가 평가 과제와 <span class="hl">완전 일치</span>하며, 전공(컴퓨터공학 박사) 및 학위가 높은 연관성을 보입니다. 유사 과제 평가 2회 및 재단 사업 평가 3회 경험이 확인되어 섭외 시 전문성 근거로 활용 가능합니다.</span>
+              </li>
+              <li>
+                <span class="ai-axis-tag ax-sinc">성실성</span>
+                <span>평가서 의견 작성량이 동 분야 평균 대비 <span class="hl">128%</span>로 상위 수준이며, 판단 근거 구체성 <span class="hl">상(上)</span> 등급입니다. 점수와 의견 간 정합성이 양호하고, 평가 소요 시간은 평균 수준으로 특이사항 없습니다.</span>
+              </li>
+              <li>
+                <span class="ai-axis-tag ax-fair">공정성</span>
+                <span>자료상 동일 기관·학력·경력 관계 제척 사유는 확인되지 않습니다. 단, <span class="hl-r">개인적 지인 관계는 자료 확인 불가 범위</span>에 해당하므로, 평가위원 서약 및 구두 확인을 병행 권고합니다.</span>
+              </li>
+              <li>
+                <span class="ai-axis-tag ax-trust">신뢰성</span>
+                <span>재단 사업 평가 3회 참여 이력이 확인되며, 간사 참고 의견은 긍정적입니다. 반복 평가 시 점수 패턴이 안정적으로 유지되어 신뢰도가 높습니다.</span>
+              </li>
+              <li>
+                <span class="ai-axis-tag ax-rate">타율</span>
+                <span>고평가 과제 2건 중 1건 사업화 성과 확인(50%). 낮게 평가한 과제의 저조 성과 연결 여부는 분석 중입니다. <span class="hl-r">성공 기준과 기간이 아직 확정되지 않아</span> 추가 검토 후 최종 수치가 확정됩니다.</span>
+              </li>
+            </ul>
+            <div class="ai-note">본 AI 분석 결과는 평가위원 선정의 최종 판단이 아닌 실무자 검토 보조 자료입니다. 개인정보·블라인드 처리로 인해 확인 불가 범위가 존재하며, 해당 항목은 별도 표시됩니다.</div>
+          </div>
+        </div>
+
+        <!-- Candidate body -->
+        <div class="candidate-body">
+
+          <div class="sec" style="margin-bottom:0">
+            <h4>프레임워크별 종합 판단</h4>
+            <table class="fw-tbl">
+              <thead>
+                <tr>
+                  <th style="width:15%">지표</th>
+                  <th style="width:18%">종합 등급</th>
+                  <th style="width:67%">현황 및 판단 내용</th>
+                </tr>
+              </thead>
+              <tbody id="fwRows">
+                <tr>
+                  <td class="fw-idx">
+                    <div class="fw-idx-inner">
+                      <div class="fw-idx-name">적합성</div>
+                      <div class="fw-idx-keys">기술분야 일치<br/>전공·학위 연관<br/>유사 경험</div>
+                    </div>
+                  </td>
+                  <td class="fw-status"><span class="sb sb-good">적합</span></td>
+                  <td class="fw-desc">기술분야 및 전공이 평가 과제와 일치하며, 유사 과제 평가 2회와 재단 사업 평가 3회 경험이 확인됩니다. 섭외 시 전문성 근거 자료로 활용할 수 있습니다.</td>
+                </tr>
+                <tr>
+                  <td class="fw-idx">
+                    <div class="fw-idx-inner">
+                      <div class="fw-idx-name">성실성</div>
+                      <div class="fw-idx-keys">의견 작성량<br/>판단 근거 구체성<br/>점수-의견 정합</div>
+                    </div>
+                  </td>
+                  <td class="fw-status"><span class="sb sb-info">양호</span></td>
+                  <td class="fw-desc">평가서 의견 작성량이 동 분야 평균 대비 128% 수준이며 판단 근거 구체성은 <strong>상(上)</strong> 등급입니다. 점수와 의견 간 정합성이 양호하고 평가 소요 시간은 평균 수준으로 특이사항이 없습니다.</td>
+                </tr>
+                <tr>
+                  <td class="fw-idx">
+                    <div class="fw-idx-inner">
+                      <div class="fw-idx-name">공정성</div>
+                      <div class="fw-idx-keys">제척 사유<br/>관계성 검토<br/>확인 가능 범위</div>
+                    </div>
+                  </td>
+                  <td class="fw-status"><span class="sb sb-mid">주의</span></td>
+                  <td class="fw-desc">자료 검토 결과 동일 기관·학력·경력 관계 제척 사유는 확인되지 않았습니다. 다만 개인적 지인 관계는 <strong>자료상 확인 불가 범위</strong>에 해당하므로 평가위원 서약 및 구두 확인을 병행하도록 권고합니다.</td>
+                </tr>
+                <tr>
+                  <td class="fw-idx">
+                    <div class="fw-idx-inner">
+                      <div class="fw-idx-name">신뢰성</div>
+                      <div class="fw-idx-keys">재단 참여 횟수<br/>간사·위원장 평가<br/>반복 안정성</div>
+                    </div>
+                  </td>
+                  <td class="fw-status"><span class="sb sb-info">양호</span></td>
+                  <td class="fw-desc">재단 사업 평가에 총 3회 참여한 이력이 확인되며, 간사 참고 의견은 긍정적으로 기록되어 있습니다. 반복 평가 시 점수 패턴이 안정적으로 유지되어 내부 신뢰도가 높습니다.</td>
+                </tr>
+                <tr class="row-hl">
+                  <td class="fw-idx">
+                    <div class="fw-idx-inner">
+                      <div class="fw-idx-name">타율</div>
+                      <div class="fw-idx-keys">고평가→성과<br/>저평가→낮은성과<br/>예측력 일관성</div>
+                    </div>
+                  </td>
+                  <td class="fw-status"><span class="sb sb-warn">검토 중</span></td>
+                  <td class="fw-desc">과거 고평가 과제 2건 중 1건의 사업화 성과가 확인되어 현재 타율은 50%로 산출됩니다. 단, 성공의 기준과 기간이 아직 확정되지 않은 상태이므로 추가 검토를 거쳐 최종 수치가 확정됩니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /center -->
+
+
+    <!-- ════ RIGHT ════ -->
+    <div class="col">
+
+      <!-- 평가 이력 타임라인 -->
+      <div class="card">
+        <div class="card-head"><h3>평가 이력 타임라인</h3><span class="detail-btn">상세</span></div>
+        <div class="card-body" style="padding:14px 16px;">
+          <div class="gantt-axis">
+            <span>'18</span><span>'19</span><span>'20</span>
+            <span>'21</span><span>'22</span><span>'23</span><span>'24</span>
+          </div>
+          <div class="gantt-row">
+            <div class="gantt-label">재단 평가</div>
+            <div class="gantt-track">
+              <div class="gantt-bar gb-1" style="left:13%;width:13%">1차</div>
+              <div class="gantt-bar gb-1" style="left:42%;width:13%">2차</div>
+              <div class="gantt-bar gb-1" style="left:72%;width:13%">3차</div>
+            </div>
+          </div>
+          <div class="gantt-row">
+            <div class="gantt-label">유사 과제</div>
+            <div class="gantt-track">
+              <div class="gantt-bar gb-2" style="left:4%;width:18%">1차</div>
+              <div class="gantt-bar gb-2" style="left:58%;width:18%">2차</div>
+            </div>
+          </div>
+          <div class="gantt-row">
+            <div class="gantt-label">외부 평가</div>
+            <div class="gantt-track">
+              <div class="gantt-bar gb-3" style="left:0%;width:20%">1차</div>
+              <div class="gantt-bar gb-3" style="left:30%;width:20%">2차</div>
+              <div class="gantt-bar gb-3" style="left:64%;width:18%">3차</div>
+            </div>
+          </div>
+          <div class="gantt-row">
+            <div class="gantt-label">성과 확인</div>
+            <div class="gantt-track">
+              <div class="gantt-bar gb-4" style="left:26%;width:22%">사업화</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 적합도 프레임워크 분석 레이더 -->
+      <div class="card">
+        <div class="card-head"><h3>적합도 프레임워크 분석</h3><span class="detail-btn">상세</span></div>
+        <div class="card-body" style="padding:14px 16px 12px;">
+          <div class="radar-wrap"><canvas id="radarChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 평가 지표별 평가 기준 -->
+      <div class="card">
+        <div class="card-head"><h3>지표별 평가 기준</h3></div>
+        <div>
+          <div class="fw-guide-row">
+            <div class="fw-num ax-fit">1</div>
+            <div class="fw-name">적합성</div>
+            <div class="fw-items">기술분야 일치 · 전공·학위 연관성 · 유사 과제 평가 경험</div>
+          </div>
+          <div class="fw-guide-row">
+            <div class="fw-num ax-sinc">2</div>
+            <div class="fw-name">성실성</div>
+            <div class="fw-items">의견 작성량 · 판단 근거 구체성 · 점수-의견 정합성 · 평가 소요 시간</div>
+          </div>
+          <div class="fw-guide-row">
+            <div class="fw-num ax-fair">3</div>
+            <div class="fw-name">공정성</div>
+            <div class="fw-items">제척 사유 확인 · 관계성 검토 · 확인 가능/불가 범위 명시</div>
+          </div>
+          <div class="fw-guide-row">
+            <div class="fw-num ax-trust">4</div>
+            <div class="fw-name">신뢰성</div>
+            <div class="fw-items">재단 평가 참여 횟수 · 간사·위원장 평가 · 반복 평가 안정성</div>
+          </div>
+          <div class="fw-guide-row hl">
+            <div class="fw-num ax-rate">5</div>
+            <div class="fw-name">타율</div>
+            <div class="fw-items">고평가 과제 → 사업화 성과 연결 · 저평가 → 낮은 성과 여부 · 예측력 일관성 검증</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+  </div>
+</div>
+
+<script>
+Chart.defaults.font.family="'Noto Sans KR',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#8096b2';
+
+const DATA={
+  '1':{
+    grade:'S',percentile:'상위 3.2%',
+    gradeRows:[['적합성','평가자 후보','s'],['성실성','평가 수행','a'],['공정성','평가 이전','b'],['신뢰성','사후 평가','a'],['타율','사업화','a']],
+    name:'김○○',tags:['AI·데이터 분야','서울대 교수','공학박사'],rate:68,
+    cells:{affil:'서울대학교',match:'일치',found:'3회',excl:'없음'},
+    hrPct:'50%',hrSub:'평가 5건 중 사업화 확인 1건',
+    hitrate:{labels:['과제A','과제B','과제C','과제D','과제E'],scores:[85,92,78,88,72],outcomes:[80,88,60,85,65]},
+    radar:[88,85,78,80,72],
+    avail:['기술분야: AI·데이터 (일치)','전공·학위: 컴퓨터공학 박사','소속·직위: 서울대학교 교수'],
+    wanted:['유사 과제 평가: 2회','재단 사업 평가: 3회','기술분야 일치도: 높음'],
+    aiItems:[
+      {tag:'적합성',cls:'ax-fit', text:`기술분야 <span class="hl">AI·데이터</span>가 평가 과제와 <span class="hl">완전 일치</span>하며, 전공(컴퓨터공학 박사) 및 학위가 높은 연관성을 보입니다. 유사 과제 평가 2회 및 재단 사업 평가 3회 경험이 확인되어 섭외 시 전문성 근거로 활용 가능합니다.`},
+      {tag:'성실성',cls:'ax-sinc',text:`평가서 의견 작성량이 동 분야 평균 대비 <span class="hl">128%</span>로 상위 수준이며, 판단 근거 구체성 <span class="hl">상(上)</span> 등급입니다. 점수와 의견 간 정합성이 양호하고, 평가 소요 시간은 평균 수준으로 특이사항 없습니다.`},
+      {tag:'공정성',cls:'ax-fair',text:`자료상 동일 기관·학력·경력 관계 제척 사유는 확인되지 않습니다. 단, <span class="hl-r">개인적 지인 관계는 자료 확인 불가 범위</span>에 해당하므로, 평가위원 서약 및 구두 확인을 병행 권고합니다.`},
+      {tag:'신뢰성',cls:'ax-trust',text:`재단 사업 평가 3회 참여 이력이 확인되며, 간사 참고 의견은 긍정적입니다. 반복 평가 시 점수 패턴이 안정적으로 유지되어 신뢰도가 높습니다.`},
+      {tag:'타율',  cls:'ax-rate',text:`고평가 과제 2건 중 1건 사업화 성과 확인 (50%). <span class="hl-r">성공 기준과 기간이 아직 확정되지 않아</span> 추가 검토 후 최종 수치가 확정됩니다.`},
+    ],
+  },
+  '2':{
+    grade:'A',percentile:'상위 18.4%',
+    gradeRows:[['적합성','평가자 후보','b'],['성실성','평가 수행','a'],['공정성','평가 이전','a'],['신뢰성','사후 평가','b'],['타율','사업화','b']],
+    name:'이○○',tags:['바이오·헬스 분야','KIST 선임연구원','이학박사'],rate:55,
+    cells:{affil:'KIST',match:'부분 일치',found:'1회',excl:'없음'},
+    hrPct:'25%',hrSub:'평가 4건 중 사업화 확인 1건',
+    hitrate:{labels:['과제A','과제B','과제C','과제D'],scores:[80,70,88,65],outcomes:[55,72,60,70]},
+    radar:[75,78,82,72,68],
+    avail:['기술분야: 바이오·헬스 (부분 일치)','전공·학위: 생명과학 이학박사','소속·직위: KIST 선임연구원'],
+    wanted:['유사 과제 평가: 4회','재단 사업 평가: 1회','기술분야 일치도: 중간'],
+    aiItems:[
+      {tag:'적합성',cls:'ax-fit', text:`<span class="hl">바이오·헬스 분야</span> 전문성이 확인됩니다. 평가 과제와 부분 일치하며, 유사 과제 평가 경험 4회로 비교적 풍부합니다.`},
+      {tag:'성실성',cls:'ax-sinc',text:`평가서 성실도는 평균 수준으로 분석됩니다. 의견 작성량 95%, 판단 근거 구체성 <span class="hl">중(中)</span> 등급으로 개선 여지가 있습니다.`},
+      {tag:'공정성',cls:'ax-fair',text:`자료상 제척 사유 없음. 개인적 지인 관계는 <span class="hl-r">확인 불가 범위</span>에 해당하며 서약 확인이 필요합니다.`},
+      {tag:'신뢰성',cls:'ax-trust',text:`재단 평가 참여 <span class="hl-r">1회</span>로 사업 이해도 검토가 필요합니다. 첫 참여자 이해도 리스크 보완 방안을 검토하십시오.`},
+      {tag:'타율',  cls:'ax-rate',text:`고평가 과제 4건 중 1건 사업화 확인 (25%). <span class="hl-r">성과 기준이 확정되지 않아</span> 추가 검토 후 최종 수치가 확정됩니다.`},
+    ],
+  },
+  '3':{
+    grade:'A',percentile:'상위 12.1%',
+    gradeRows:[['적합성','평가자 후보','a'],['성실성','평가 수행','a'],['공정성','평가 이전','b'],['신뢰성','사후 평가','a'],['타율','사업화','b']],
+    name:'박○○',tags:['ICT·SW 분야','(주)○○ CTO','공학석사'],rate:61,
+    cells:{affil:'(주)○○',match:'일치',found:'5회',excl:'검토 필요'},
+    hrPct:'33%',hrSub:'평가 6건 중 사업화 확인 2건',
+    hitrate:{labels:['과제A','과제B','과제C','과제D','과제E','과제F'],scores:[90,75,82,88,70,85],outcomes:[78,70,75,60,65,80]},
+    radar:[82,80,70,85,65],
+    avail:['기술분야: ICT·SW (일치)','전공·학위: 컴퓨터공학 공학석사','소속·직위: (주)○○ CTO'],
+    wanted:['유사 과제 평가: 3회','재단 사업 평가: 5회','기술분야 일치도: 높음'],
+    aiItems:[
+      {tag:'적합성',cls:'ax-fit', text:`<span class="hl">ICT·SW 실무 경력 기반</span> 전문성을 보유합니다. 기술분야 일치하며 유사 과제 평가 3회, 재단 평가 5회로 사업 이해도가 높습니다.`},
+      {tag:'성실성',cls:'ax-sinc',text:`평가서 작성량 110%, 근거 구체성 <span class="hl">상(上)</span>으로 성실도가 양호합니다. 점수-의견 정합성도 확인됩니다.`},
+      {tag:'공정성',cls:'ax-fair',text:`동일 기관 관계 <span class="hl-r">검토 필요</span> — 제척 사유 여부를 추가 확인하십시오. 자료상 확인 불가 관계가 있을 수 있습니다.`},
+      {tag:'신뢰성',cls:'ax-trust',text:`재단 평가 5회 참여. 간사 참고 의견 긍정적이며 반복 평가 패턴이 안정적입니다.`},
+      {tag:'타율',  cls:'ax-rate',text:`고평가 과제 6건 중 2건 사업화 확인 (33%). <span class="hl-r">성과 기준이 확정되지 않아</span> 추가 검토 후 최종 수치가 확정됩니다.`},
+    ],
+  },
+};
+
+function gtag(g){return `<span class="gtag gtag-${g}">${g.toUpperCase()}</span>`;}
+
+/* Bell */
+const bp=[];
+for(let x=-3.2;x<=3.2;x+=0.08) bp.push({x,y:Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI)});
+new Chart(document.getElementById('bellChart'),{
+  type:'line',
+  data:{datasets:[
+    {label:'전체',data:bp.map(d=>({x:d.x,y:d.y})),borderColor:'#a0c8e0',backgroundColor:'rgba(160,200,224,.18)',fill:true,tension:.4,pointRadius:0,borderWidth:1.5},
+    {label:'제안 체계',data:bp.map(d=>({x:d.x+0.3,y:d.y*1.1})),borderColor:'#00b2d8',backgroundColor:'rgba(0,178,216,.18)',fill:true,tension:.4,pointRadius:0,borderWidth:2.5},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:8,padding:8,font:{size:9}}},tooltip:{enabled:false}},
+    scales:{x:{type:'linear',display:false},y:{display:false}}}
+});
+
+/* 타율 분석 */
+const hrChart=new Chart(document.getElementById('hitrateChart'),{
+  type:'bar',
+  data:{
+    labels:DATA['1'].hitrate.labels,
+    datasets:[
+      {label:'평가 점수',data:DATA['1'].hitrate.scores,backgroundColor:'rgba(26,53,101,.88)',borderRadius:3,barPercentage:.7,categoryPercentage:.75},
+      {label:'사업화 성과',data:DATA['1'].hitrate.outcomes,backgroundColor:'rgba(0,178,216,.78)',borderRadius:3,barPercentage:.7,categoryPercentage:.75},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},tooltip:{mode:'index',intersect:false}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10}}},
+      y:{min:0,max:100,grid:{color:'#e8f0f8'},ticks:{font:{size:10},callback:v=>v+'점'}}
+    }
+  }
+});
+
+/* Radar */
+const radarChart=new Chart(document.getElementById('radarChart'),{
+  type:'radar',
+  data:{
+    labels:['적합성','성실성','공정성','신뢰성','타율'],
+    datasets:[
+      {label:'본 후보',data:[88,85,78,80,72],backgroundColor:'rgba(0,178,216,.15)',borderColor:'#00b2d8',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#00b2d8',pointBorderColor:'#fff',pointBorderWidth:1.5},
+      {label:'분야 평균',data:[65,60,70,62,58],backgroundColor:'rgba(26,53,101,.08)',borderColor:'#1a3565',borderWidth:1.5,borderDash:[5,4],pointRadius:0},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:8,padding:8,font:{size:10}}}},
+    scales:{r:{beginAtZero:true,max:100,ticks:{display:false},
+      pointLabels:{font:{size:10.5},color:'#425170'},
+      grid:{color:'#dce8f5'},angleLines:{color:'#c8d8ea'}}}
+  }
+});
+
+/* 등급별 컬러 */
+const GRADE_COLOR={S:'#1a3565',A:'#00b2d8',B:'#f7941d',C:'#e4007f'};
+function applyGradeColor(grade){
+  const c=GRADE_COLOR[grade]||'#1a3565';
+  document.getElementById('lGrade').style.color=c;
+  document.getElementById('lGradeLetter').style.color=c;
+}
+applyGradeColor('S');
+
+/* Switch */
+document.getElementById('sel').addEventListener('change',function(){
+  const d=DATA[this.value];
+  document.getElementById('lGrade').textContent=d.grade;
+  document.getElementById('lGradeLetter').textContent=d.grade;
+  document.getElementById('lPercentile').textContent=d.percentile;
+  applyGradeColor(d.grade);
+  document.getElementById('gradeRows').innerHTML=d.gradeRows.map(([a,b,g])=>`<tr><td>${a}</td><td>${b}</td><td>${gtag(g)}</td></tr>`).join('');
+  document.getElementById('mName').textContent=d.name;
+  document.getElementById('hTag1').textContent=d.tags[0];
+  document.getElementById('hTag2').textContent=d.tags[1];
+  document.getElementById('hTag3').textContent=d.tags[2];
+  document.getElementById('rateNum').innerHTML=d.rate+'<span class="ru">%</span>';
+
+  document.getElementById('hAffil').textContent=d.cells.affil;
+  document.getElementById('hMatch').textContent=d.cells.match;
+  document.getElementById('hFound').textContent=d.cells.found;
+  document.getElementById('hExcl').textContent=d.cells.excl;
+  document.getElementById('hrPct').textContent=d.hrPct;
+  document.getElementById('hrSub').textContent=d.hrSub;
+  document.getElementById('aiSummaryList').innerHTML=d.aiItems.map(i=>
+    `<li><span class="ai-axis-tag ${i.cls}">${i.tag}</span><span>${i.text}</span></li>`).join('');
+  hrChart.data.labels=d.hitrate.labels;
+  hrChart.data.datasets[0].data=d.hitrate.scores;
+  hrChart.data.datasets[1].data=d.hitrate.outcomes;
+  hrChart.update();
+  radarChart.data.datasets[0].data=d.radar;
+  radarChart.update();
+});
+</script>
+</body>
+</html>
