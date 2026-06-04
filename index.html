@@ -397,6 +397,84 @@
       border:5px solid transparent;border-top-color:var(--k-dark);
     }
     .gantt-bar:hover .g-tooltip{opacity:1;visibility:visible;}
+
+    /* ═══ RESPONSIVE ═══ */
+
+    /* 태블릿 가로 / 작은 데스크탑 (≤1280px) → 2단 */
+    @media(max-width:1280px){
+      .grid{grid-template-columns:280px 1fr;gap:14px;}
+      .grid>.col:nth-child(3){
+        grid-column:1/-1;
+        display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+      }
+      .scroll-mid{max-height:none;}
+    }
+
+    /* 태블릿 세로 (≤1024px) → 1단 */
+    @media(max-width:1024px){
+      .grid{grid-template-columns:1fr;gap:14px;}
+      .grid>.col:nth-child(3){grid-template-columns:1fr 1fr;}
+      .page{padding:12px 14px 24px;}
+      .hero-info-grid{grid-template-columns:repeat(4,1fr);}
+      .fw-detail-grid{grid-template-columns:1fr 1fr;}
+    }
+
+    /* 모바일 (≤768px) */
+    @media(max-width:768px){
+      .keit-header{padding:8px 14px;}
+      .keit-logo{font-size:15px;}
+      .keit-logo span{font-size:10px;}
+      .page{padding:10px 10px 20px;}
+      .topbar{flex-direction:column;align-items:stretch;gap:8px;}
+      .topbar select{min-width:auto;width:100%;}
+      .grid{grid-template-columns:1fr;gap:12px;}
+      .grid>.col:nth-child(3){grid-template-columns:1fr;}
+
+      .grade-display{flex-direction:column;align-items:center;gap:10px;}
+      .grade-letter{font-size:56px;}
+      .bell-wrap{width:100%;height:90px;}
+
+      .hero-name{font-size:20px;}
+      .hero-info-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
+      .hero-cell{padding:7px 9px;}
+      .hero-cell .hc-value{font-size:12px;}
+
+      .candidate-hero{padding:16px 14px 14px;}
+      .ai-box-inner{padding:14px 12px;}
+      .candidate-body{padding:14px 12px;}
+
+      .fw-tbl .fw-idx{width:auto;padding:10px 8px;}
+      .fw-tbl .fw-status{width:auto;padding:10px 8px;}
+      .fw-tbl .fw-desc{padding:10px 12px;font-size:12px;}
+      .fw-idx-keys{font-size:9px;}
+      .fw-detail-grid{grid-template-columns:1fr;}
+
+      .hr-banner-val{font-size:40px;}
+      .hitrate-wrap{height:160px;}
+
+      .radar-wrap{height:200px;}
+
+      .gantt-label{width:50px;font-size:10px;}
+      .gantt-bar{font-size:9px;min-width:26px;}
+
+      .drawer{width:100%;right:-100%;}
+      .drawer-head{padding:16px;}
+      .drawer-body{padding:16px;}
+      .drawer-stat{flex-direction:column;}
+    }
+
+    /* 소형 모바일 (≤480px) */
+    @media(max-width:480px){
+      .hero-info-grid{grid-template-columns:1fr 1fr;}
+      .grade-letter{font-size:44px;}
+      .hr-banner-val{font-size:32px;}
+      .card-body{padding:12px;}
+      .fw-tbl{font-size:11px;}
+      .fw-idx-name{font-size:11px;}
+      .sb{font-size:10px;padding:4px 10px;}
+      .ai-summary-list li{flex-direction:column;gap:6px;}
+      .ai-axis-tag{width:auto;padding:0 10px;}
+    }
   </style>
 </head>
 <body>
